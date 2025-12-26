@@ -1,3 +1,6 @@
+require('dotenv').config(); // <--- ADD THIS AT THE VERY TOP
+const express = require("express");
+// ... rest of imports
 const express = require("express");
 const app = express();
 const http = require("http");
@@ -19,8 +22,7 @@ const server = http.createServer(app);
 
 // 2. CONNECT TO MONGODB
 // (This is your working connection string)
-const MONGO_URI = "mongodb+srv://indhu:indhu006@cluster0.rxztmvk.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-
+const MONGO_URI = process.env.MONGO_URI;
 mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ CONNECTED TO MONGODB"))
   .catch((err) => console.log("❌ MONGO CONNECTION ERROR:", err));
@@ -64,8 +66,7 @@ app.post("/login", async (req, res) => {
     if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
     // Create Token
-    const token = jwt.sign({ id: user._id }, "SECRET_KEY", { expiresIn: "1h" });
-
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
     res.json({ token, username: user.username });
   } catch (err) {
     res.status(500).json({ error: err.message });
