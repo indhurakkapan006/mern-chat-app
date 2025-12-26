@@ -1,22 +1,19 @@
 import io from "socket.io-client";
 import { useEffect, useState, useRef } from "react";
 import EmojiPicker from "emoji-picker-react";
-import axios from "axios"; // NEW: For API calls
+import axios from "axios";
 import "./App.css";
 
-const socket = io.connect("http://localhost:3001");
+// 1. CONNECT TO YOUR LIVE RENDER SERVER
+const socket = io.connect("https://chat-app-backend-k5ki.onrender.com");
 
 function App() {
-  // --- STATE VARIABLES ---
-  
-  // Auth State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [token, setToken] = useState("");
 
-  // Chat State
   const [room, setRoom] = useState("");
   const [showChat, setShowChat] = useState(false);
   const [currentMessage, setCurrentMessage] = useState("");
@@ -26,13 +23,14 @@ function App() {
   
   const messagesEndRef = useRef(null);
 
-  // --- AUTHENTICATION FUNCTIONS (NEW) ---
+  // --- AUTHENTICATION ---
 
   const handleRegister = async () => {
     try {
-      await axios.post("http://localhost:3001/register", { username, password });
+      // 2. UPDATED URL FOR REGISTRATION
+      await axios.post("https://chat-app-backend-k5ki.onrender.com/register", { username, password });
       alert("Registration Successful! Now please login.");
-      setIsRegistering(false); // Switch back to login view
+      setIsRegistering(false); 
     } catch (err) {
       alert("Registration Failed: " + (err.response?.data?.message || err.message));
     }
@@ -40,16 +38,17 @@ function App() {
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post("http://localhost:3001/login", { username, password });
+      // 3. UPDATED URL FOR LOGIN
+      const response = await axios.post("https://chat-app-backend-k5ki.onrender.com/login", { username, password });
       setToken(response.data.token);
       setUsername(response.data.username);
-      setIsAuthenticated(true); // Unlock the next screen
+      setIsAuthenticated(true);
     } catch (err) {
       alert("Login Failed: " + (err.response?.data?.message || err.message));
     }
   };
 
-  // --- CHAT FUNCTIONS ---
+  // --- CHAT LOGIC ---
 
   const joinRoom = () => {
     if (username !== "" && room !== "") {
@@ -100,12 +99,9 @@ function App() {
     };
   }, [socket]);
 
-  // --- RENDERING ---
-
   return (
     <div className="App">
       
-      {/* SCREEN 1: LOGIN / REGISTER */}
       {!isAuthenticated ? (
         <div className="joinChatContainer">
           <h3>{isRegistering ? "Register" : "Login"} to DevChat</h3>
@@ -134,8 +130,6 @@ function App() {
           </p>
         </div>
       ) : (
-        
-        // SCREEN 2 & 3: JOIN ROOM & CHAT
         !showChat ? (
           <div className="joinChatContainer">
             <h3>Welcome, {username}!</h3>
