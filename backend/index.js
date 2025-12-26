@@ -1,6 +1,4 @@
-require('dotenv').config(); // <--- ADD THIS AT THE VERY TOP
-const express = require("express");
-// ... rest of imports
+require('dotenv').config();
 const express = require("express");
 const app = express();
 const http = require("http");
@@ -14,35 +12,27 @@ const jwt = require("jsonwebtoken");
 const Message = require("./models/Message");
 const User = require("./models/User");
 
-// 1. SETUP CORS (Allow requests from anywhere for now)
 app.use(cors());
 app.use(express.json());
 
 const server = http.createServer(app);
 
-// 2. CONNECT TO MONGODB
-// (This is your working connection string)
+// 1. CONNECT TO MONGODB (Using Env Variable)
 const MONGO_URI = process.env.MONGO_URI;
+
 mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ CONNECTED TO MONGODB"))
   .catch((err) => console.log("❌ MONGO CONNECTION ERROR:", err));
 
-
 // --- AUTHENTICATION ROUTES ---
 
-// Register Route
 app.post("/register", async (req, res) => {
   try {
     const { username, password } = req.body;
-    
-    // Check if user exists
     const existingUser = await User.findOne({ username });
     if (existingUser) return res.status(400).json({ message: "User already exists" });
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Save User
     const newUser = new User({ username, password: hashedPassword });
     await newUser.save();
 
@@ -52,21 +42,18 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// Login Route
 app.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
-
-    // Find User
     const user = await User.findOne({ username });
     if (!user) return res.status(400).json({ message: "User not found" });
 
-    // Check Password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
-    // Create Token
+    // USE ENV VARIABLE FOR SECRET
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
     res.json({ token, username: user.username });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -75,7 +62,6 @@ app.post("/login", async (req, res) => {
 
 // --- SOCKET IO LOGIC ---
 
-// 3. ALLOW SOCKET CONNECTIONS FROM ANYWHERE (Crucial for Deployment)
 const io = new Server(server, {
   cors: {
     origin: "*", 
@@ -88,9 +74,7 @@ io.on("connection", (socket) => {
 
   socket.on("join_room", async (room) => {
     socket.join(room);
-    console.log(`User ${socket.id} joined room: ${room}`);
     
-    // Load History
     try {
       const history = await Message.find({ room: room }).sort({ timestamp: 1 });
       socket.emit("load_history", history);
@@ -100,11 +84,8 @@ io.on("connection", (socket) => {
   });
 
   socket.on("send_message", async (data) => {
-    // Save to DB
     const newMessage = new Message(data);
     await newMessage.save();
-    
-    // Send to everyone in room (including sender)
     io.in(data.room).emit("receive_message", data);
   });
 
@@ -117,7 +98,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// 4. USE THE PORT RENDER ASSIGNS (OR 3001)
 const PORT = process.env.PORT || 3001;
 
 server.listen(PORT, () => {
