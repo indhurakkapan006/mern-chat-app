@@ -1,4 +1,6 @@
-require('dotenv').config();
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
 const express = require("express");
 const app = express();
 const http = require("http");
@@ -17,7 +19,6 @@ app.use(express.json());
 
 const server = http.createServer(app);
 
-// 1. CONNECT TO MONGODB (Using Env Variable)
 const MONGO_URI = process.env.MONGO_URI;
 
 mongoose.connect(MONGO_URI)
@@ -51,7 +52,6 @@ app.post("/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
-    // USE ENV VARIABLE FOR SECRET
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
     res.json({ token, username: user.username });
