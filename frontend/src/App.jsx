@@ -71,6 +71,12 @@ function App() {
     }
   };
 
+  const toggleAuthMode = () => {
+    setUsername("");
+    setPassword("");
+    setIsRegistering(!isRegistering);
+  };
+
   const handleLogout = () => {
     setIsAuthenticated(false);
     setUsername("");
@@ -229,7 +235,7 @@ function App() {
 
           <p 
             style={{cursor: "pointer", textDecoration: "underline", color: "blue"}}
-            onClick={() => setIsRegistering(!isRegistering)}
+            onClick={toggleAuthMode}
           >
             {isRegistering ? "Already have an account? Login" : "Need an account? Register"}
           </p>
