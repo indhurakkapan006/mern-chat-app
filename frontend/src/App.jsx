@@ -4,8 +4,8 @@ import EmojiPicker from "emoji-picker-react";
 import axios from "axios";
 import "./App.css";
 
-// 1. CONNECT TO YOUR LIVE RENDER SERVER
-const socket = io.connect("https://chat-app-backend-k5ki.onrender.com");
+// 1. CONNECT TO YOUR LOCAL BACKEND SERVER
+const socket = io.connect("http://localhost:3002");
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -48,8 +48,8 @@ function App() {
 
   const handleRegister = async () => {
     try {
-      // 2. UPDATED URL FOR REGISTRATION
-      await axios.post("https://chat-app-backend-k5ki.onrender.com/register", { username, password });
+      // 2. UPDATED URL FOR LOCAL BACKEND
+      await axios.post("http://localhost:3002/register", { username, password });
       alert("Registration Successful! Now please login.");
       setUsername("");
       setPassword("");
@@ -61,20 +61,14 @@ function App() {
 
   const handleLogin = async () => {
     try {
-      // 3. UPDATED URL FOR LOGIN
-      const response = await axios.post("https://chat-app-backend-k5ki.onrender.com/login", { username, password });
+      // 3. UPDATED URL FOR LOCAL BACKEND
+      const response = await axios.post("http://localhost:3002/login", { username, password });
       setToken(response.data.token);
       setUsername(response.data.username);
       setIsAuthenticated(true);
     } catch (err) {
       alert("Login Failed: " + (err.response?.data?.message || err.message));
     }
-  };
-
-  const toggleAuthMode = () => {
-    setUsername("");
-    setPassword("");
-    setIsRegistering(!isRegistering);
   };
 
   const handleLogout = () => {
@@ -115,8 +109,7 @@ function App() {
 
   const startDirectChat = () => {
     if (selectedUser && selectedUser !== username) {
-      setDirectChatMode(true);
-      setShowDirectChat(true);
+      // Don't immediately set UI state - wait for server confirmation
       socket.emit("start_direct_chat", {from: username, to: selectedUser});
     } else {
       alert("Please enter a valid username (different from yours)");
@@ -201,12 +194,24 @@ function App() {
         setDirectMessages((list) => [...list, data]);
       }
     });
+    socket.on("direct_chat_error", (data) => {
+      alert(data.message || "Unable to start private chat");
+      setDirectChatMode(false);
+      setShowDirectChat(true); // Stay on the chat selection screen
+    });
+    socket.on("direct_chat_started", (data) => {
+      console.log("Direct chat started:", data);
+      setDirectChatMode(true);
+      setShowDirectChat(true);
+    });
 
     return () => {
       socket.off("receive_message");
       socket.off("display_typing");
       socket.off("load_history");
       socket.off("receive_direct_message");
+      socket.off("direct_chat_error");
+      socket.off("direct_chat_started");
     };
   }, [socket, selectedUser]);
 
@@ -235,7 +240,7 @@ function App() {
 
           <p 
             style={{cursor: "pointer", textDecoration: "underline", color: "blue"}}
-            onClick={toggleAuthMode}
+            onClick={() => setIsRegistering(!isRegistering)}
           >
             {isRegistering ? "Already have an account? Login" : "Need an account? Register"}
           </p>
@@ -404,7 +409,8 @@ function App() {
           <div className="chat-window">
             <div className="chat-header">
               <p>Room: {room}</p>
-              <div style={{display: "flex", gap: "10px"}}>
+              <div className="chat-header-buttons">
+                <button onClick={() => setShowChat(false)} style={{backgroundColor: "#666", cursor: "pointer"}}>Back</button>
                 <button onClick={leaveRoom} style={{backgroundColor: "#ffa500", cursor: "pointer"}}>Leave Room</button>
                 <button onClick={handleLogout} style={{backgroundColor: "#ff6b6b", cursor: "pointer"}}>Sign Out</button>
               </div>

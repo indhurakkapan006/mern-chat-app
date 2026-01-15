@@ -47,14 +47,29 @@
   background: #263238;
   position: relative;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
 }
 .chat-header p {
-  display: block;
-  padding: 0;
+  margin: 0;
   color: #fff;
-  text-align: center;
-  line-height: 45px;
-  margin: 0; 
+  font-size: 16px;
+  font-weight: bold;
+  flex: 1;
+}
+.chat-header-buttons {
+  display: flex;
+  gap: 5px;
+}
+.chat-header-buttons button {
+  padding: 5px 8px;
+  font-size: 12px;
+  border: none;
+  border-radius: 3px;
+  color: white;
+  cursor: pointer;
 }
 .chat-body {
   height: calc(450px - (45px + 70px));
