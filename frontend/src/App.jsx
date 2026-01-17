@@ -4,8 +4,12 @@ import EmojiPicker from "emoji-picker-react";
 import axios from "axios";
 import "./App.css";
 
-// 1. CONNECT TO YOUR LOCAL BACKEND SERVER
-const socket = io.connect("http://localhost:3002");
+// 1. DYNAMIC URL: Automatically switches between Local and Render
+const BACKEND_URL = window.location.hostname === "localhost" 
+  ? "http://localhost:3002" 
+  : "https://chat-app-backend-k5ki.onrender.com"; // <--- CHANGE THIS TO YOUR RENDER URL
+
+const socket = io.connect(BACKEND_URL);
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -48,8 +52,8 @@ function App() {
 
   const handleRegister = async () => {
     try {
-      // 2. UPDATED URL FOR LOCAL BACKEND
-      await axios.post("http://localhost:3002/register", { username, password });
+      // Use dynamic BACKEND_URL
+      await axios.post(`${BACKEND_URL}/register`, { username, password });
       alert("Registration Successful! Now please login.");
       setUsername("");
       setPassword("");
@@ -61,8 +65,8 @@ function App() {
 
   const handleLogin = async () => {
     try {
-      // 3. UPDATED URL FOR LOCAL BACKEND
-      const response = await axios.post("http://localhost:3002/login", { username, password });
+      // Use dynamic BACKEND_URL
+      const response = await axios.post(`${BACKEND_URL}/login`, { username, password });
       setToken(response.data.token);
       setUsername(response.data.username);
       setIsAuthenticated(true);
@@ -109,7 +113,6 @@ function App() {
 
   const startDirectChat = () => {
     if (selectedUser && selectedUser !== username) {
-      // Don't immediately set UI state - wait for server confirmation
       socket.emit("start_direct_chat", {from: username, to: selectedUser});
     } else {
       alert("Please enter a valid username (different from yours)");
@@ -145,7 +148,6 @@ function App() {
     if (username !== "" && room !== "") {
       socket.emit("join_room", room);
       setShowChat(true);
-      // Add room to recently joined rooms if not already there
       if (!recentlyJoinedRooms.includes(room)) {
         setRecentlyJoinedRooms([room, ...recentlyJoinedRooms.slice(0, 4)]);
       }
@@ -197,10 +199,9 @@ function App() {
     socket.on("direct_chat_error", (data) => {
       alert(data.message || "Unable to start private chat");
       setDirectChatMode(false);
-      setShowDirectChat(true); // Stay on the chat selection screen
+      setShowDirectChat(true);
     });
     socket.on("direct_chat_started", (data) => {
-      console.log("Direct chat started:", data);
       setDirectChatMode(true);
       setShowDirectChat(true);
     });
@@ -213,7 +214,7 @@ function App() {
       socket.off("direct_chat_error");
       socket.off("direct_chat_started");
     };
-  }, [socket, selectedUser]);
+  }, [selectedUser]); // Removed socket from dependency to prevent re-renders
 
   return (
     <div className="App">
@@ -327,26 +328,20 @@ function App() {
               </div>
             )}
           </div>
-        ) : showDirectChat ? (
+        ) : showDirectChat && !directChatMode ? (
           <div className="joinChatContainer">
             <h3>1-1 Chat</h3>
-            {!showDirectChat || !directChatMode ? (
-              <div style={{width: "100%", maxWidth: "400px"}}>
-                <input
-                  type="text"
-                  placeholder="Enter username to chat..."
-                  value={selectedUser}
-                  onChange={(e) => setSelectedUser(e.target.value)}
-                  style={{width: "100%", padding: "10px", marginBottom: "10px", boxSizing: "border-box"}}
-                />
-                <button onClick={startDirectChat} style={{backgroundColor: "#9C27B0", marginRight: "10px"}}>Start Chat</button>
-                <button onClick={() => setShowDirectChat(false)} style={{backgroundColor: "#666"}}>Back</button>
-              </div>
-            ) : (
-              <div style={{width: "100%"}}>
-                <button onClick={endDirectChat} style={{backgroundColor: "#666", marginBottom: "10px"}}>Back</button>
-              </div>
-            )}
+            <div style={{width: "100%", maxWidth: "400px"}}>
+              <input
+                type="text"
+                placeholder="Enter username to chat..."
+                value={selectedUser}
+                onChange={(e) => setSelectedUser(e.target.value)}
+                style={{width: "100%", padding: "10px", marginBottom: "10px", boxSizing: "border-box"}}
+              />
+              <button onClick={startDirectChat} style={{backgroundColor: "#9C27B0", marginRight: "10px"}}>Start Chat</button>
+              <button onClick={() => setShowDirectChat(false)} style={{backgroundColor: "#666"}}>Back</button>
+            </div>
           </div>
         ) : directChatMode ? (
           <div className="chat-window">
